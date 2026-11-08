@@ -2,6 +2,7 @@
 // 维护者人工核查并合并到 submissions/ 下的 JSON 文件，会在下次启动/部署时自动入库。
 import fs from 'node:fs';
 import path from 'node:path';
+import { normalizeTags } from './tags.js';
 
 const DIR = path.join(process.cwd(), 'submissions');
 
@@ -10,9 +11,7 @@ const LIMITS = {
   surface: 1000,
   solution: 3000,
   hint: 200,
-  tag: 12,
   maxHints: 8,
-  maxTags: 5,
   files: 500
 };
 
@@ -67,9 +66,8 @@ export function loadSubmissions() {
         hints: Array.isArray(raw.hints)
           ? raw.hints.map((h) => clean(h, LIMITS.hint)).filter(Boolean).slice(0, LIMITS.maxHints)
           : [],
-        tags: Array.isArray(raw.tags)
-          ? [...new Set(raw.tags.map((t) => clean(t, LIMITS.tag)).filter(Boolean))].slice(0, LIMITS.maxTags)
-          : [],
+        // 非白名单标签直接丢弃；一个都不合法就是空数组
+        tags: normalizeTags(raw.tags),
         createdAt: fs.statSync(full).mtimeMs || Date.now()
       });
     } catch (err) {

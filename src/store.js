@@ -3,6 +3,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { builtinStories } from './stories.js';
 import { loadSubmissions } from './submissions.js';
+import { normalizeTags } from './tags.js';
 
 const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), 'data');
 const DATA_FILE = path.join(DATA_DIR, 'db.json');
@@ -12,9 +13,8 @@ const LIMITS = {
   surface: 1000,
   solution: 3000,
   hintText: 200,
-  tag: 12,
   maxHints: 8,
-  maxTags: 5,
+  maxTags: 2,
   storiesCap: 1000,
   historyCap: 30
 };
@@ -63,6 +63,17 @@ function seedIfNeeded(db) {
 let db = emptyDb();
 let saveTimer = null;
 
+// 旧数据里可能有历史标签（如「阅读」「黑暗」），加载时统一收敛到白名单
+function normalizeStoryTags(target) {
+  for (const s of target.stories) {
+    if (!s || !Array.isArray(s.tags)) {
+      if (s) s.tags = [];
+      continue;
+    }
+    s.tags = normalizeTags(s.tags, LIMITS.maxTags);
+  }
+}
+
 // 合并进 submissions/ 的 PR 稿件（人工核查通过后）同步进题库；文件被删除则下架
 function syncSubmissions(target) {
   const list = loadSubmissions();
@@ -104,6 +115,7 @@ function load() {
     }
   }
   seedIfNeeded(db);
+  normalizeStoryTags(db);
   syncSubmissions(db);
   flush();
 }
@@ -249,9 +261,8 @@ export function addStory(input, source = 'user') {
     ? input.hints.map((h) => cleanText(h, LIMITS.hintText)).filter(Boolean).slice(0, LIMITS.maxHints)
     : [];
 
-  const tags = Array.isArray(input.tags)
-    ? [...new Set(input.tags.map((t) => cleanText(t, LIMITS.tag)).filter(Boolean))].slice(0, LIMITS.maxTags)
-    : [];
+  // 只保留白名单标签；没填或全不合法就是空数组
+  const tags = normalizeTags(input.tags);
 
   const story = {
     id: id('s_'),
