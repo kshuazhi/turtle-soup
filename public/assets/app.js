@@ -717,7 +717,7 @@ const SOUP_TEMPLATE = `{
   "surface": "汤面：只写谜面，不要透露答案",
   "solution": "汤底：完整、唯一、能解释汤面所有细节的真相",
   "hints": ["提示一（可选）", "提示二（可选）"],
-  "tags": ["悬疑", "经典"]
+  "tags": []
 }`;
 
 async function viewNew() {
@@ -743,7 +743,7 @@ async function viewNew() {
           </div></li>
           <li data-anim style="--i:2"><div>
             <h3><b>02</b> 新建 submissions/你的汤名.json</h3>
-            <p>在副本里进入 <a href="${SOUP_SUBMISSIONS}" target="_blank" rel="noopener">submissions/</a> 目录，按下面的格式新建一个 JSON 文件（文件名用英文或拼音，例如 <code>midnight-knock.json</code>）。</p>
+            <p>在副本里进入 <a href="${SOUP_SUBMISSIONS}" target="_blank" rel="noopener">submissions/</a> 目录，按下面的格式新建一个 JSON 文件（文件名用英文或拼音，例如 <code>midnight-knock.json</code>）。标签是<strong>可选</strong>的，最多 2 个，只能从下面列出的标签里选；不填就留空。</p>
           </div></li>
           <li data-anim style="--i:3"><div>
             <h3><b>03</b> 提交 Pull Request</h3>
@@ -763,13 +763,20 @@ async function viewNew() {
           <pre id="soupTemplate">${esc(SOUP_TEMPLATE)}</pre>
         </section>
 
-        <div class="hero-actions" data-anim style="--i:6">
+        <section class="submit-tags" data-anim style="--i:6" aria-label="可选标签">
+          <div class="submit-tags-head">
+            <span>可选标签 <em>最多 2 个，可不填；只能用下面这些</em></span>
+          </div>
+          <div class="tagbar" id="submitTagOptions"><span class="chip is-static">加载中…</span></div>
+        </section>
+
+        <div class="hero-actions" data-anim style="--i:7">
           <a class="btn btn--primary" href="${SOUP_PR}" target="_blank" rel="noopener">去 GitHub 提交 PR ${ICON_ARROW_R}</a>
           <a class="btn" href="${SOUP_SUBMISSIONS}" target="_blank" rel="noopener">查看投稿目录</a>
           <a class="btn btn--ghost" href="${SOUP_REPO}" target="_blank" rel="noopener">打开仓库</a>
         </div>
 
-        <p class="submit-note" data-anim style="--i:7">
+        <p class="submit-note" data-anim style="--i:8">
           海龟汤投稿请使用「海龟汤投稿」模板并放在 <code>submissions/</code> 下；
           普通代码 / 文档 PR 请使用默认模板、标题不要加 <code>[汤]</code>，
           两者互不干扰，人工核查分开进行。
@@ -784,6 +791,19 @@ async function viewNew() {
         toast('复制失败，请手动选中模板');
       }
     });
+
+    // 标签白名单由服务端给出，避免教程和实际校验不一致
+    api('/tags')
+      .then(({ options }) => {
+        const box = $('#submitTagOptions');
+        if (!box || !Array.isArray(options)) return;
+        box.innerHTML = options
+          .map(function (t) {
+            return '<span class="chip is-static">' + esc(t) + '</span>';
+          })
+          .join('');
+      })
+      .catch(() => {});
   });
 }
 

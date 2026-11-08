@@ -54,6 +54,7 @@ import {
   devSnapshot
 } from './src/rooms.js';
 import { verifyDevToken, startDevSession, endDevSession, isDev, requireDev, DEV_ROUTE, DEV_API_PREFIX } from './src/dev.js';
+import { STORY_TAGS } from './src/tags.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT) || 3300;
@@ -102,10 +103,53 @@ const api = express.Router();
 
 const devApi = express.Router();
 
-devApi.post('/login', rateLimit({ windowMs: 10 * 60_000, max: 10 }), (req, res) => {
+// 开发者登录：只统计失败次数，连续失败 5 次锁 60 秒；成功一次立即清零。
+// 手滑输错不会把开发者永久挡在门外，锁定期满自动恢复。
+const DEV_LOCK_MS = 60_000;
+const DEV_MAX_FAILS = 5;
+const devLoginFails = new Map(); // ip -> { fails, lockedUntil }
+
+function devLoginKey(req) {
+  return req.ip || req.socket.remoteAddress || 'unknown';
+}
+
+function devLoginGuard(req, res, next) {
+  const key = devLoginKey(req);
+  const t = Date.now();
+  const rec = devLoginFails.get(key);
+  if (rec) {
+    if (rec.lockedUntil > t) {
+      const wait = Math.ceil((rec.lockedUntil - t) / 1000);
+      return res.status(429).json({ error: '密钥错误次数过多，请 ' + wait + ' 秒后再试' });
+    }
+    if (rec.fails === 0) devLoginFails.delete(key);
+  }
+  req.devLoginKey = key;
+  next();
+}
+
+function devLoginFailed(key) {
+  const rec = devLoginFails.get(key) || { fails: 0, lockedUntil: 0 };
+  rec.fails += 1;
+  if (rec.fails >= DEV_MAX_FAILS) {
+    rec.fails = 0;
+    rec.lockedUntil = Date.now() + DEV_LOCK_MS;
+  }
+  devLoginFails.set(key, rec);
+}
+
+function devLoginSucceeded(key) {
+  devLoginFails.delete(key);
+}
+
+devApi.post('/login', devLoginGuard, (req, res) => {
   const token = String(req.body?.token || '').trim();
   if (!token) return res.status(400).json({ error: '请输入开发者密钥' });
-  if (!verifyDevToken(token)) return res.status(403).json({ error: '密钥不正确' });
+  if (!verifyDevToken(token)) {
+    devLoginFailed(req.devLoginKey);
+    return res.status(403).json({ error: '密钥不正确' });
+  }
+  devLoginSucceeded(req.devLoginKey);
   startDevSession(req, res);
   res.json({ ok: true });
 });
@@ -157,7 +201,7 @@ api.get('/stats', (req, res) => {
 });
 
 api.get('/tags', (req, res) => {
-  res.json({ tags: allTags() });
+  res.json({ tags: allTags(), options: STORY_TAGS });
 });
 
 api.get('/stories', (req, res) => {

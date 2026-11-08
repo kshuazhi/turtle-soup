@@ -2693,3 +2693,31 @@ html[data-theme="light"] .modal {
   font-size: 13.5px;
   line-height: 1.95;
 }
+
+/* =========================================================
+   投稿页：可选标签
+   ========================================================= */
+
+.submit-tags {
+  margin-top: 26px;
+}
+
+.submit-tags-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-size: 13.5px;
+}
+
+.submit-tags-head em {
+  font-style: normal;
+  color: var(--faint);
+  font-size: 12.5px;
+}
+
+.tagbar .chip.is-static {
+  cursor: default;
+  pointer-events: none;
+}
