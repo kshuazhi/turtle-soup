@@ -1,4 +1,6 @@
-/* 开发者面板：登录 + 对局审查（只读） */
+/* 开发者面板：登录 + 对局人工核查（只读） */
+
+const API_BASE = window.__DEV_API__ || '';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 
@@ -45,7 +47,7 @@ function toast(msg) {
 }
 
 async function api(path, opts = {}) {
-  const res = await fetch('/api/dev' + path, {
+  const res = await fetch(API_BASE + path, {
     headers: { 'Content-Type': 'application/json' },
     ...opts
   });
@@ -90,18 +92,6 @@ $('#themeToggle').addEventListener('click', () => {
     /* ignore */
   }
 });
-
-/* ------------------------------ 命中高亮 ------------------------------ */
-
-function mark(text, hits) {
-  let html = esc(text);
-  for (const w of hits || []) {
-    if (!w) continue;
-    const needle = esc(w);
-    html = html.split(needle).join('<mark>' + needle + '</mark>');
-  }
-  return html;
-}
 
 /* ------------------------------ 登录 ------------------------------ */
 
@@ -193,18 +183,15 @@ async function refreshRooms() {
     });
     b.classList.toggle('is-on', b.dataset.code === currentCode);
   });
-  $('#devMeta').textContent =
-    '共 ' + data.rooms.length + ' 局 · 词表 ' + data.moderation.words + ' 条 · ' + fmt(data.scannedAt) + ' 扫描';
+  $('#devMeta').textContent = '共 ' + data.rooms.length + ' 局 · ' + fmt(data.scannedAt) + ' 刷新';
 }
 
 function roomRow(r) {
-  const hit = r.flags.surface.length + r.flags.solution.length + r.flags.messageHits;
   return (
     '<button class="dev-room" type="button" data-code="' + esc(r.code) + '">' +
     '<span class="dev-room-top"><b>' + esc(r.title || '等待出题') + '</b><em>' + esc(r.code) + '</em></span>' +
     '<span class="dev-room-meta">' + (STATUS[r.status] || r.status) + ' · 第 ' + r.round + ' 轮 · 主持人 ' + esc(r.hostName || '—') + '</span>' +
     '<span class="dev-room-meta">' + r.onlineCount + '/' + r.memberCount + ' 在线 · ' + r.messageCount + ' 条消息 · ' + fmt(r.lastActivity) + '</span>' +
-    (hit ? '<span class="dev-badge dev-badge--bad">审查命中 ' + hit + ' 处</span>' : '<span class="dev-badge">未命中词表</span>') +
     '</button>'
   );
 }
@@ -219,8 +206,6 @@ async function loadRoom(code) {
 }
 
 function renderDetail(room) {
-  const flags = room.flags || { surface: [], solution: [], messageHits: 0 };
-
   const members = room.members
     .map(
       (m) =>
@@ -241,7 +226,6 @@ function renderDetail(room) {
       const extra =
         m.kind === 'pm' ? '私聊 → ' + esc(toName) : m.kind === 'notice' && m.to ? '仅 ' + esc(toName) + ' 可见' : '';
       const answer = m.answer ? '<span class="dev-msg-kind">回答 ' + esc(m.answer) + '</span>' : '';
-      const hits = m.hits && m.hits.length ? '<span class="dev-hit">命中：' + esc(m.hits.join('、')) + '</span>' : '';
       return (
         '<div class="dev-msg">' +
         '<div class="dev-msg-head"><b>' + esc(m.name || '系统') + '</b>' +
@@ -249,8 +233,7 @@ function renderDetail(room) {
         (extra ? '<span>' + extra + '</span>' : '') +
         answer +
         '<span>' + fmt(m.at) + '</span></div>' +
-        '<div class="dev-msg-text">' + mark(m.text, m.hits) + '</div>' +
-        hits +
+        '<div class="dev-msg-text">' + esc(m.text) + '</div>' +
         '</div>'
       );
     })
@@ -264,17 +247,10 @@ function renderDetail(room) {
     '<span>主持人 ' + esc(room.hostName || '—') + '</span>' +
     '<span>' + esc(room.mode === 'preset' ? '题库开桌' : '自己出题') + '</span></div>' +
     '<ul class="dev-members">' + members + '</ul>' +
-    '<div class="dev-audit">' +
-    '<span class="' + (flags.surface.length ? 'is-hit' : '') + '">汤面：' +
-    (flags.surface.length ? '命中 ' + esc(flags.surface.join('、')) : '未命中') + '</span>' +
-    '<span class="' + (flags.solution.length ? 'is-hit' : '') + '">汤底：' +
-    (flags.solution.length ? '命中 ' + esc(flags.solution.join('、')) : '未命中') + '</span>' +
-    '<span class="' + (flags.messageHits ? 'is-hit' : '') + '">对话：' + flags.messageHits + ' 条命中</span>' +
-    '</div>' +
     '<section class="dev-section"><h3>汤面 / SURFACE</h3><p class="dev-text">' +
-    (room.surface ? mark(room.surface, flags.surface) : '（还没有出题）') + '</p></section>' +
+    (room.surface ? esc(room.surface) : '（还没有出题）') + '</p></section>' +
     '<section class="dev-section"><h3>汤底 / SOLUTION</h3><p class="dev-text">' +
-    (room.solution ? mark(room.solution, flags.solution) : '（还没有汤底）') + '</p></section>' +
+    (room.solution ? esc(room.solution) : '（还没有汤底）') + '</p></section>' +
     '<section class="dev-section"><h3>对话 / MESSAGES · ' + room.messages.length + '</h3>' +
     (room.messages.length ? '<div class="dev-msgs">' + msgs + '</div>' : '<div class="empty empty--sm">还没有消息</div>') +
     '</section>';

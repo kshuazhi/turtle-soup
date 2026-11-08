@@ -4,6 +4,11 @@ import crypto from 'node:crypto';
 import { DEV_PUBLIC_KEY } from './dev-public-key.js';
 
 export const DEV_PAYLOAD = 'turtle-soup-dev-panel-v1';
+
+// 隐藏入口：随机路径（可用 DEV_ROUTE / DEV_API_PREFIX 环境变量覆盖）。
+// 路径本身不是安全边界，真正的门禁是 Ed25519 私钥签名。
+export const DEV_ROUTE = process.env.DEV_ROUTE || '/268691230f3f';
+export const DEV_API_PREFIX = process.env.DEV_API_PREFIX || '/api/268691230f3f';
 const SESSION_MS = 2 * 60 * 60 * 1000;
 const COOKIE = 'ts_dev';
 const sessions = new Map();

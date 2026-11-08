@@ -187,26 +187,6 @@
   font-size: 12.5px;
 }
 
-.dev-badge {
-  align-self: flex-start;
-  margin-top: 4px;
-  padding: 2px 9px;
-  border: 1px solid var(--line-strong);
-  border-radius: 999px;
-  color: var(--muted);
-  font-size: 11px;
-}
-
-.dev-badge--bad {
-  border-color: #b4534b;
-  color: #e0847c;
-}
-
-html[data-theme="light"] .dev-badge--bad {
-  color: #a33;
-  border-color: #c98a83;
-}
-
 .dev-detail {
   min-height: 320px;
   padding: clamp(18px, 3vw, 28px);
@@ -279,31 +259,6 @@ html[data-theme="light"] .dev-badge--bad {
   line-height: 1.85;
 }
 
-.dev-audit {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin: 16px 0 0;
-}
-
-.dev-audit span {
-  padding: 4px 10px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--muted);
-  font-size: 12.5px;
-}
-
-.dev-audit span.is-hit {
-  border-color: #b4534b;
-  color: #e0847c;
-}
-
-html[data-theme="light"] .dev-audit span.is-hit {
-  color: #a33;
-  border-color: #c98a83;
-}
-
 .dev-msgs {
   display: flex;
   flex-direction: column;
@@ -347,26 +302,4 @@ html[data-theme="light"] .dev-audit span.is-hit {
   white-space: pre-wrap;
   font-size: 14.5px;
   line-height: 1.7;
-}
-
-.dev-hit {
-  display: inline-block;
-  margin-top: 6px;
-  color: #e0847c;
-  font-size: 11.5px;
-}
-
-html[data-theme="light"] .dev-hit {
-  color: #a33;
-}
-
-mark {
-  padding: 0 2px;
-  border-radius: 3px;
-  background: rgba(224, 132, 124, 0.22);
-  color: inherit;
-}
-
-html[data-theme="light"] mark {
-  background: rgba(180, 83, 75, 0.18);
 }

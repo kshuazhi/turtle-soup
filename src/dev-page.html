@@ -7,8 +7,8 @@
     <meta name="theme-color" content="#0a0a0a" />
     <title>开发者面板 · 海龟汤</title>
     <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
-    <link rel="stylesheet" href="/assets/style.css?v=3" />
-    <link rel="stylesheet" href="/assets/dev.css?v=3" />
+    <link rel="stylesheet" href="/assets/style.css?v=4" />
+    <link rel="stylesheet" href="/assets/dev.css?v=4" />
   </head>
   <body class="dev-body">
     <header class="site-head">
@@ -34,7 +34,7 @@
         <span class="kicker">DEVELOPER · 开发者</span>
         <h1>开发者面板</h1>
         <p class="dev-lead">
-          面板用于审查进行中的对局：谜题、汤面、汤底与全部对话（含私聊），辅助做违规词与合规审查。<br />
+          面板用于人工核查进行中的对局：谜题、汤面、汤底与全部对话（含私聊）。<br />
           进入需要本机私钥生成的开发者密钥；私钥只保存在你的电脑上，不会上传服务器。
         </p>
         <form id="loginForm" class="dev-login-form" autocomplete="off">
@@ -80,6 +80,7 @@
     </main>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
-    <script type="module" src="/assets/dev.js?v=3"></script>
+    <script>window.__DEV_API__ = '__DEV_API_BASE__';</script>
+    <script type="module" src="/assets/dev.js?v=4"></script>
   </body>
 </html>

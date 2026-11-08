@@ -20,7 +20,6 @@
 | `/room/:code` | 房间内：准备区（全员准备 + 主持人开始游戏）、汤面、玩家列表、提问与回答、改名 |
 | `/new` | 投稿教程：通过 GitHub Pull Request 提交海龟汤 |
 | `/about` | 玩法说明 |
-| `/dev` | 开发者面板（需本机私钥生成的密钥） |
 
 ## 快速开始
 
@@ -261,16 +260,6 @@ CMD ["node", "server.js"]
 | POST | `/api/rooms/:code/leave` | 离开房间 |
 | POST | `/api/rooms/:code/close` | 主持人结束房间 |
 
-开发者（仅本机）：
-
-| 方法 | 路径 | 说明 |
-| --- | --- | --- |
-| POST | `/api/dev/login` | `{token}` 开发者密钥登录（Ed25519 验签） |
-| POST | `/api/dev/logout` | 退出开发者会话 |
-| GET | `/api/dev/me` | 当前是否已登录 |
-| GET | `/api/dev/rooms` | 所有进行中对局的摘要（含审查命中数） |
-| GET | `/api/dev/rooms/:code` | 单个对局详情：谜面、汤底、全部对话（含私聊） |
-
 ## 投稿（Pull Request）
 
 出题不再通过网页直接发布：
@@ -280,43 +269,25 @@ CMD ["node", "server.js"]
 - 维护者**人工核查**内容与合规后合并；合并后的文件在下次启动 / 部署时自动加载进题库（删除文件并重新部署即下架）；
 - 普通代码 / 文档 PR 使用默认模板、标题不加 `[汤]`，两类 PR 互不干扰。
 
-## 开发者面板（`/dev`）
-
-用于审查进行中的对局：房间列表、谜面、汤底、全部对话（含私聊），并内置违规 / 违禁词扫描作为人工审查的辅助。
-
-1. 在项目目录执行 `npm run dev:keygen`：
-   - 私钥写入本机 `.keys/dev-private.pem`（已在 `.gitignore`，**绝不入库**）；
-   - 公钥写入 `src/dev-public-key.js`（公钥可公开，服务端只用它验签）；
-   - 终端会输出一串**开发者密钥**（Ed25519 签名，256 位安全强度）。
-2. 打开 `/dev`，粘贴这串密钥登录，即可查看所有进行中的对局。
-3. 会话是 HttpOnly Cookie，2 小时有效；私钥和密钥都不要提交、不要发给别人。
-4. 更换密钥：删除 `.keys/dev-private.pem` 后重新执行 `npm run dev:keygen`，再重新部署（公钥会随仓库更新）。
-
 ## 目录结构
 
 ```
 .
-├── server.js              # Express 入口、单机 / 联机 / 开发者 API、静态资源
+├── server.js              # Express 入口、单机 / 联机 API、静态资源
 ├── src/
 │   ├── store.js           # 题库持久化（data/db.json）+ 合并 submissions/
 │   ├── stories.js         # 内置题库
 │   ├── rooms.js           # 联机房间：主持人模式、SSE、身份、快照恢复
 │   ├── ratelimit.js       # 简易限流
-│   ├── dev.js             # 开发者会话：Ed25519 验签 + HttpOnly Cookie
-│   ├── dev-public-key.js  # 开发者公钥（npm run dev:keygen 生成；私钥在本地 .keys/）
-│   ├── moderation.js      # 违规 / 违禁词扫描
 │   └── submissions.js     # 加载 submissions/ 下已合并的 PR 稿件
 ├── submissions/           # 海龟汤投稿目录（每个 .json = 一道汤）
 ├── .github/PULL_REQUEST_TEMPLATE/  # 海龟汤 / 普通 PR 两套模板
-├── tools/dev-keygen.mjs   # 生成开发者密钥对与登录密钥
 └── public/
     ├── index.html
-    ├── dev.html           # 开发者登录 / 审查面板
     └── assets/
         ├── style.css      # 黑白主题、动画、响应式
         ├── app.js         # 单机页面 + 投稿教程
         ├── rooms.js       # 联机大厅与房间
-        ├── dev.js / dev.css  # 开发者面板
         ├── favicon.svg
         └── fonts/         # 仿宋字体子集（woff2）
 ```
@@ -331,9 +302,6 @@ CMD ["node", "server.js"]
 - 联机身份用随机 token 区分，**不要**把带 token 的接口地址公开分享；分享用 `/room/:code` 链接。
 - 汤底只在「揭晓」后才下发给浏览器；联机房间中，提问和回答在房间内公开。
 - 投稿已改为 GitHub Pull Request：`POST /api/stories` 固定返回 403，网页不再直接写题库。
-- 开发者私钥只保存在本机 `.keys/dev-private.pem`（`.gitignore` 已忽略），仓库和服务端只有公钥；私钥泄露后请删除并重新执行 `npm run dev:keygen`，再重新部署。
-- 开发者面板能读取**所有房间的私聊内容**，仅用于违规 / 合规审查；开发者密钥等同于私钥派生的凭证，不要外传，不要在公共电脑上保存。
-- 开发者登录会话是 HttpOnly + SameSite=Strict 的 Cookie，2 小时过期；登录接口有频率限制（10 分钟 10 次）。
 
 ## License
 

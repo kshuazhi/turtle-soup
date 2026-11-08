@@ -1,5 +1,6 @@
 import express from 'express';
 import compression from 'compression';
+import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
@@ -52,8 +53,7 @@ import {
   roomsStats,
   devSnapshot
 } from './src/rooms.js';
-import { verifyDevToken, startDevSession, endDevSession, isDev, requireDev } from './src/dev.js';
-import { scanText, moderationMeta } from './src/moderation.js';
+import { verifyDevToken, startDevSession, endDevSession, isDev, requireDev, DEV_ROUTE, DEV_API_PREFIX } from './src/dev.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT) || 3300;
@@ -116,51 +116,37 @@ devApi.post('/logout', (req, res) => {
 });
 
 devApi.get('/me', (req, res) => {
-  res.json({ ok: isDev(req), moderation: moderationMeta() });
+  res.json({ ok: isDev(req) });
 });
 
 // 所有进行中的对局（摘要）
 devApi.get('/rooms', requireDev, (req, res) => {
   const rooms = devSnapshot()
-    .map((r) => {
-      const messageHits = r.messages.filter((m) => scanText(m.text).length).length;
-      return {
-        code: r.code,
-        title: r.title,
-        mode: r.mode,
-        status: r.status,
-        round: r.round,
-        hostName: r.hostName,
-        memberCount: r.members.length,
-        onlineCount: r.members.filter((m) => m.online).length,
-        messageCount: r.messages.length,
-        flags: { surface: scanText(r.surface), solution: scanText(r.solution), messageHits },
-        lastActivity: r.lastActivity
-      };
-    })
+    .map((r) => ({
+      code: r.code,
+      title: r.title,
+      mode: r.mode,
+      status: r.status,
+      round: r.round,
+      hostName: r.hostName,
+      memberCount: r.members.length,
+      onlineCount: r.members.filter((m) => m.online).length,
+      messageCount: r.messages.length,
+      lastActivity: r.lastActivity
+    }))
     .sort((a, b) => b.lastActivity - a.lastActivity);
-  res.json({ rooms, scannedAt: Date.now(), moderation: moderationMeta() });
+  res.json({ rooms, scannedAt: Date.now() });
 });
 
 // 单个对局详情：谜题、汤面、汤底、全部对话（含私聊）
 devApi.get('/rooms/:code', requireDev, (req, res) => {
   const room = devSnapshot(req.params.code);
   if (!room) return res.status(404).json({ error: '房间不存在或已解散' });
-  const messages = room.messages.map((m) => ({ ...m, hits: scanText(m.text) }));
-  res.json({
-    room: {
-      ...room,
-      messages,
-      flags: {
-        surface: scanText(room.surface),
-        solution: scanText(room.solution),
-        messageHits: messages.filter((m) => m.hits.length).length
-      }
-    }
-  });
+  res.json({ room });
 });
 
-api.use('/dev', devApi);
+// 隐藏入口：不挂在固定的 /api 前缀下，改用随机前缀
+app.use(DEV_API_PREFIX, devApi);
 
 api.get('/health', (req, res) => {
   res.json({ ok: true, time: Date.now() });
@@ -407,9 +393,17 @@ app.use(
   })
 );
 
-// 开发者登录 / 面板（独立页面，不进单页路由）
-app.get('/dev', (req, res) => {
-  res.sendFile(path.join(publicDir, 'dev.html'));
+// 开发者登录 / 面板：隐藏的随机路径，页面从 src 读取后注入 API 前缀
+app.get(DEV_ROUTE, (req, res, next) => {
+  try {
+    const html = fs
+      .readFileSync(path.join(__dirname, 'src', 'dev-page.html'), 'utf8')
+      .replace('__DEV_API_BASE__', DEV_API_PREFIX);
+    res.setHeader('Cache-Control', 'no-store');
+    res.type('html').send(html);
+  } catch (err) {
+    next(err);
+  }
 });
 
 // 单页路由回退
