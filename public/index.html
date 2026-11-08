@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0a0a0a" />
+    <link rel="preload" href="/assets/fonts/ZhuqueFangsong-subset.woff2" as="font" type="font/woff2" crossorigin />
+    <meta name="description" content="海龟汤 · 情境推理游戏。看汤面、猜汤底，一步一步揭开真相。" />
+    <title>海龟汤 · 情境推理</title>
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+    <link rel="stylesheet" href="/assets/style.css?v=2" />
+  </head>
+  <body>
+    <a class="skip" href="#main">跳到主要内容</a>
+
+    <header class="site-head">
+      <a class="brand" href="/" data-nav>
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+          <circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" stroke-width="1.6" />
+          <circle cx="16" cy="16" r="7" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".55" />
+          <circle cx="16" cy="16" r="1.8" fill="currentColor" />
+        </svg>
+        <span class="brand-text">海龟汤<em>TURTLE SOUP</em></span>
+      </a>
+
+      <nav class="site-nav" aria-label="主导航">
+        <a href="/" data-nav>题库</a>
+        <a href="/rooms" data-nav>联机</a>
+        <a href="/new" data-nav>出题</a>
+        <a href="/about" data-nav>玩法</a>
+      </nav>
+
+      <button
+        class="theme-toggle"
+        id="themeToggle"
+        type="button"
+        aria-label="切换明暗主题"
+        title="切换明暗主题（黑白）"
+      >
+        <span class="tt-dot" aria-hidden="true"></span>
+        <span class="tt-label">反色</span>
+      </button>
+    </header>
+
+    <main id="main" class="site-main" tabindex="-1">
+      <div id="view" class="view" aria-live="polite"></div>
+    </main>
+
+    <footer class="site-foot">
+      <span id="footStats">海龟汤 · 情境推理</span>
+      <span class="sep" aria-hidden="true">/</span>
+      <a href="/about" data-nav>玩法说明</a>
+    </footer>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <script src="/assets/app.js?v=2" type="module"></script>
+    <script src="/assets/rooms.js?v=2" type="module"></script>
+  </body>
+</html>
