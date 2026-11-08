@@ -201,12 +201,13 @@ api.get('/stats', (req, res) => {
 });
 
 api.get('/tags', (req, res) => {
-  res.json({ tags: allTags(), options: STORY_TAGS });
+  const source = String(req.query.source || '');
+  res.json({ tags: allTags(source), options: STORY_TAGS });
 });
 
 api.get('/stories', (req, res) => {
-  const { page, size, q, tag, sort } = req.query;
-  res.json(listStories({ page, size, q, tag, sort }));
+  const { page, size, q, tag, sort, source } = req.query;
+  res.json(listStories({ page, size, q, tag, sort, source }));
 });
 
 api.get('/stories/random', (req, res) => {
@@ -451,7 +452,7 @@ app.get(DEV_ROUTE, (req, res, next) => {
 });
 
 // 单页路由回退
-app.get(['/play/:id', '/new', '/about', '/rooms', '/rooms/custom', '/rooms/preset', '/room/:code'], (req, res) => {
+app.get(['/play/:id', '/new', '/about', '/community', '/rooms', '/rooms/custom', '/rooms/preset', '/room/:code'], (req, res) => {
   res.sendFile(path.join(publicDir, 'index.html'));
 });
 

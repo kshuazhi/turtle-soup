@@ -151,6 +151,7 @@ function setNav(scope) {
   document.querySelectorAll('.site-nav a').forEach((a) => {
     const href = a.getAttribute('href');
     const on =
+      (scope === 'community' && href === '/community') ||
       (scope === 'browse' && href === '/') ||
       (scope === 'rooms' && href === '/rooms') ||
       (scope === 'new' && href === '/new') ||
@@ -176,6 +177,7 @@ function route() {
     const id = decodeURIComponent(p.slice('/play/'.length));
     return viewPlay(id);
   }
+  if (p === '/community') return viewCommunity();
   if (p === '/new') return viewNew();
   if (p === '/about') return viewAbout();
   if (p === '/rooms' || p === '/rooms/custom' || p === '/rooms/preset') return window.TS.rooms.viewLobby();
@@ -203,7 +205,7 @@ const ICON_SEARCH = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" 
 const ICON_PLUS = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>`;
 const ICON_X = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>`;
 
-function cardHtml(s, i) {
+function cardHtml(s, i, page = state.page) {
   const tags = (s.tags || [])
     .slice(0, 2)
     .map((t) => `<i>${esc(t)}</i>`)
@@ -212,7 +214,7 @@ function cardHtml(s, i) {
     <article class="card" style="--i:${i}" data-id="${esc(s.id)}" role="link" tabindex="0"
              aria-label="阅读：${esc(s.title)}">
       <div class="card-top">
-        <span class="card-no">NO.${pad(i + 1 + (state.page - 1) * 12)}</span>
+        <span class="card-no">NO.${pad(i + 1 + (page - 1) * 12)}</span>
         <span class="card-no">${s.source === 'builtin' ? '馆藏' : '来稿'}</span>
       </div>
       <h3 class="card-title">${esc(s.title)}</h3>
@@ -269,6 +271,7 @@ async function viewHome() {
         </p>
         <div class="hero-actions" data-anim style="--i:3">
           <button class="btn btn--primary" id="btnRandom" type="button">随机一道</button>
+          <a class="btn" href="/community" data-nav>玩家投稿</a>
           <a class="btn" href="/new" data-nav>出题</a>
           <a class="btn btn--ghost" href="/about" data-nav>玩法 ${ICON_ARROW_R}</a>
         </div>
@@ -413,6 +416,163 @@ async function goRandom() {
   } catch (err) {
     toast(err.message);
   }
+}
+
+/* ============================================================
+   玩家投稿（独立页面：独立搜索与标签）
+   ============================================================ */
+
+const communityState = {
+  page: 1,
+  q: '',
+  tag: '',
+  sort: 'new',
+  tags: [],
+  total: 0,
+  listToken: 0
+};
+
+async function viewCommunity() {
+  setNav('community');
+  state.scope = 'community';
+  document.title = '玩家投稿 · 海龟汤';
+
+  await swap((el) => {
+    el.innerHTML = `
+      <section class="hero hero--community">
+        <span class="kicker" data-anim style="--i:0">COMMUNITY · 玩家投稿</span>
+        <h1 data-anim style="--i:1">玩家熬的汤，<span class="thin">也在桌上。</span></h1>
+        <p class="lead" data-anim style="--i:2">
+          这里只收录通过 GitHub Pull Request 投稿、经人工核查合并的海龟汤。搜索和标签都属于这个页面，不会影响题库。
+        </p>
+        <div class="hero-actions" data-anim style="--i:3">
+          <a class="btn btn--primary" href="/new" data-nav>投稿一碗汤</a>
+          <a class="btn btn--ghost" href="/" data-nav>返回题库 ${ICON_ARROW_R}</a>
+        </div>
+      </section>
+
+      <section class="section-head" aria-label="玩家投稿">
+        <h2 class="section-title" data-anim style="--i:4">投稿汤 / COMMUNITY</h2>
+        <div class="toolbar">
+          <div class="search">
+            ${ICON_SEARCH}
+            <input id="cSearch" type="search" placeholder="在玩家投稿里搜索标题、汤面或标签" aria-label="搜索玩家投稿" autocomplete="off" />
+          </div>
+          <select class="select" id="cSort" aria-label="排序">
+            <option value="new">最新</option>
+            <option value="hot">最热</option>
+            <option value="like">最多喜欢</option>
+            <option value="random">随机</option>
+          </select>
+        </div>
+        <div class="tagbar" id="cTagbar"></div>
+      </section>
+
+      <div class="cards" id="cCards" aria-busy="true">
+        ${'<div class="skeleton"></div>'.repeat(6)}
+      </div>
+      <nav class="pager" id="cPager" aria-label="分页"></nav>
+    `;
+
+    $('#cSearch').addEventListener('input', debounce((e) => {
+      communityState.q = e.target.value.trim();
+      communityState.page = 1;
+      loadCommunityList();
+    }, 320));
+    $('#cSort').addEventListener('change', (e) => {
+      communityState.sort = e.target.value;
+      communityState.page = 1;
+      loadCommunityList();
+    });
+    $('#cSort').value = communityState.sort;
+
+    loadCommunityTags();
+    loadCommunityList();
+    loadStats();
+  });
+}
+
+async function loadCommunityTags() {
+  try {
+    const { tags } = await api('/tags?source=pr');
+    communityState.tags = tags;
+    const bar = $('#cTagbar');
+    if (!bar) return;
+    if (!tags.length) {
+      bar.innerHTML = '';
+      return;
+    }
+    const all = `<button class="chip ${communityState.tag ? '' : 'is-on'}" data-ctag="">全部</button>`;
+    const items = tags
+      .slice(0, 10)
+      .map((t) => `<button class="chip ${communityState.tag === t.name ? 'is-on' : ''}" data-ctag="${esc(t.name)}">${esc(t.name)} <span style="opacity:.5">${t.count}</span></button>`)
+      .join('');
+    bar.innerHTML = all + items;
+    bar.querySelectorAll('.chip').forEach((c) =>
+      c.addEventListener('click', () => {
+        communityState.tag = c.dataset.ctag;
+        communityState.page = 1;
+        loadCommunityTags();
+        loadCommunityList();
+      })
+    );
+  } catch {
+    /* ignore */
+  }
+}
+
+async function loadCommunityList() {
+  const token = ++communityState.listToken;
+  const wrap = $('#cCards');
+  if (!wrap) return;
+  const params = new URLSearchParams({
+    page: communityState.page,
+    size: 12,
+    sort: communityState.sort,
+    q: communityState.q,
+    tag: communityState.tag,
+    source: 'pr'
+  });
+  try {
+    const data = await api('/stories?' + params.toString());
+    if (token !== communityState.listToken || !$('#cCards')) return;
+    communityState.total = data.total;
+    wrap.removeAttribute('aria-busy');
+    if (!data.items.length) {
+      wrap.innerHTML = '<div class="empty" style="grid-column:1/-1"><strong>还没有玩家投稿</strong>去 <a href="/new" data-nav>投稿教程</a> 提交第一碗汤</div>';
+      renderCommunityPager(data);
+      return;
+    }
+    wrap.innerHTML = data.items.map((s, i) => cardHtml(s, i, communityState.page)).join('');
+    bindCards(wrap);
+    renderCommunityPager(data);
+  } catch (err) {
+    if (token !== communityState.listToken) return;
+    wrap.innerHTML = `<div class="empty" style="grid-column:1/-1"><strong>加载失败</strong>${esc(err.message)}</div>`;
+    renderCommunityPager({ page: 1, pages: 1 });
+  }
+}
+
+function renderCommunityPager(data) {
+  const pager = $('#cPager');
+  if (!pager) return;
+  if (data.pages <= 1) {
+    pager.innerHTML = '';
+    return;
+  }
+  pager.innerHTML = `
+    <button type="button" data-cp="prev" aria-label="上一页" ${data.page <= 1 ? 'disabled' : ''}>${ICON_ARROW_L}</button>
+    <span>${pad(data.page)} / ${pad(data.pages)}</span>
+    <button type="button" data-cp="next" aria-label="下一页" ${data.page >= data.pages ? 'disabled' : ''}>${ICON_ARROW_R}</button>
+  `;
+  pager.querySelectorAll('button').forEach((b) =>
+    b.addEventListener('click', () => {
+      if (b.dataset.cp === 'prev') communityState.page = Math.max(1, data.page - 1);
+      else communityState.page = Math.min(data.pages, data.page + 1);
+      loadCommunityList();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    })
+  );
 }
 
 /* ============================================================

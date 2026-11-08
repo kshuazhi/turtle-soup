@@ -39,7 +39,8 @@ export function loadSubmissions() {
       .filter((f) => f.toLowerCase().endsWith('.json') && !f.startsWith('_'))
       .sort();
   } catch {
-    return out;
+    // ok:false 表示目录读不到（部署遗漏 / 权限问题），调用方应保留已入库的投稿
+    return { items: [], ok: false };
   }
 
   const seen = new Set();
@@ -74,7 +75,7 @@ export function loadSubmissions() {
       console.warn('[submissions] 跳过 ' + file + '：' + err.message);
     }
   }
-  return out;
+  return { items: out, ok: true };
 }
 
 export { DIR as SUBMISSIONS_DIR };

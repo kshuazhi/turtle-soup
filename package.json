@@ -7,7 +7,9 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "dev:keygen": "node tools/dev-keygen.mjs"
+    "dev:keygen": "node tools/dev-keygen.mjs",
+    "data:backup": "node tools/backup-data.mjs",
+    "data:restore": "node tools/restore-data.mjs"
   },
   "engines": {
     "node": ">=18"

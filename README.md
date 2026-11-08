@@ -14,6 +14,7 @@
 
 | 页面 | 说明 |
 | --- | --- |
+| `/community` | 玩家投稿：只收录通过 PR 合并的海龟汤，独立搜索与标签 |
 | `/` | 题库：搜索、标签、排序、分页、随机 |
 | `/play/:id` | 阅读汤面、要提示、提交推理、揭晓汤底 |
 | `/rooms` | 联机第一屏：创建房间（自己出题 / 题库开桌）、加入房间、改名、进行中的房间 |
@@ -54,6 +55,27 @@ npm start
 - 首次启动会自动写入内置题库（10 道经典汤）。
 - 进行中的房间会定期快照到同一文件的 `roomSnapshots` 字段；服务重启后，房主和玩家用原浏览器重新打开房间链接即可续上（同屏身份保存在 `sessionStorage`）。
 - 想清空数据：停服务后删除 `data/db.json` 即可。
+
+### 服务器更新后保留翻煮次数 / 喜欢
+
+`views` / `likes` 都存在 `data/db.json`，**更新代码本身不会动它**；会丢只有一种情况：部署时把 `data/` 一起清掉了（容器重建、重新 clone 覆盖、Docker 构建覆盖等）。按部署方式处理：
+
+| 部署方式 | 做法 |
+| --- | --- |
+| Railway / 容器平台 | 挂一个 Volume 到 `/data`，设置 `DATA_DIR=/data`（见 Railway 章节）；重新部署时 Volume 不变 |
+| 云服务器（直接跑） | 把数据放到代码目录之外：`DATA_DIR=/var/lib/turtle-soup`；`git pull` / `rsync` 更新代码时不要删这个目录 |
+| Docker | `-v turtle-data:/data -e DATA_DIR=/data`，不要用 `docker rm` 删除卷 |
+
+另外提供两个脚本做备份 / 恢复：
+
+```bash
+npm run data:backup     # 复制 data/db.json 到 backups/db-<时间戳>.json
+npm run data:restore -- backups/db-2026-11-09T12-00-00-000Z.json   # 恢复（重启服务后生效）
+```
+
+`backups/` 已加入 `.gitignore`；建议用 cron / 计划任务每天备份，并同步到对象存储或另一台机器。
+
+> `submissions/` 里的投稿文件在仓库里，重新部署不会丢；`data/db.json` 只存计数和缓存，丢了题库能自动重建，但翻煮次数和喜欢会归零——所以持久化目录才是关键。
 
 > 这是单进程、单机文件存储的设计，适合个人或小站。不要同时起多个实例指向同一个数据文件。
 
@@ -217,7 +239,7 @@ CMD ["node", "server.js"]
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
-| GET | `/api/stories?page=&size=&q=&tag=&sort=` | 题库列表（sort: new / hot / like / random） |
+| GET | `/api/stories?page=&size=&q=&tag=&sort=&source=` | 题库列表（sort: new / hot / like / random；source=pr 只看玩家投稿） |
 | GET | `/api/stories/:id` | 汤面 + 提示（汤底不预下发） |
 | GET | `/api/stories/random` | 随机一道 |
 | POST | `/api/stories/:id/hint` | `{count}` 取前 N 条提示 |
@@ -266,7 +288,7 @@ CMD ["node", "server.js"]
 
 - “出题”页（`/new`）只提供教程，并把 `POST /api/stories` 关闭为 403；
 - 投稿人 Fork 仓库 → 在 `submissions/` 下新增 JSON → 提交 PR（标题以 `[汤]` 开头，使用“海龟汤投稿”模板）；
-- 维护者**人工核查**内容与合规后合并；合并后的文件在下次启动 / 部署时自动加载进题库（删除文件并重新部署即下架）；
+- 维护者**人工核查**内容与合规后合并；合并后的文件在下次启动 / 部署时自动加载进题库（删除文件并重新部署即下架），并出现在独立的「玩家投稿」页（`/community`）；
 - 标签可选、最多 2 个，只能从固定白名单里选（经典 / 悬疑 / 恐怖 / 悲伤 / 温暖 / 轻松 / 推理 / 脑洞 / 科幻 / 日常），非白名单标签会被直接丢弃；
 - 普通代码 / 文档 PR 使用默认模板、标题不加 `[汤]`，两类 PR 互不干扰。
 
@@ -274,20 +296,24 @@ CMD ["node", "server.js"]
 
 ```
 .
-├── server.js              # Express 入口、单机 / 联机 API、静态资源
+├── server.js              # Express 入口、单机 / 联机 / 投稿 API、静态资源
 ├── src/
 │   ├── store.js           # 题库持久化（data/db.json）+ 合并 submissions/
 │   ├── stories.js         # 内置题库
 │   ├── rooms.js           # 联机房间：主持人模式、SSE、身份、快照恢复
 │   ├── ratelimit.js       # 简易限流
+│   ├── tags.js            # 标签白名单
 │   └── submissions.js     # 加载 submissions/ 下已合并的 PR 稿件
 ├── submissions/           # 海龟汤投稿目录（每个 .json = 一道汤）
 ├── .github/PULL_REQUEST_TEMPLATE/  # 海龟汤 / 普通 PR 两套模板
+├── tools/
+│   ├── backup-data.mjs    # 备份 data/db.json 到 backups/
+│   └── restore-data.mjs   # 从备份恢复
 └── public/
     ├── index.html
     └── assets/
         ├── style.css      # 黑白主题、动画、响应式
-        ├── app.js         # 单机页面 + 投稿教程
+        ├── app.js         # 题库 + 玩家投稿页 + 投稿教程
         ├── rooms.js       # 联机大厅与房间
         ├── favicon.svg
         └── fonts/         # 仿宋字体子集（woff2）

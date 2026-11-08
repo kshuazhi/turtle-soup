@@ -76,11 +76,15 @@ function normalizeStoryTags(target) {
 
 // 合并进 submissions/ 的 PR 稿件（人工核查通过后）同步进题库；文件被删除则下架
 function syncSubmissions(target) {
-  const list = loadSubmissions();
-  const ids = new Set(list.map((s) => s.id));
-  target.stories = target.stories.filter((s) => s.source !== 'pr' || ids.has(s.id));
+  const { items, ok } = loadSubmissions();
+  // 只有目录真的读到了才按文件同步；目录不可读时保留已入库的投稿，
+  // 这样服务器更新 / 部署遗漏不会把玩家提交的汤弄丢
+  if (ok) {
+    const ids = new Set(items.map((s) => s.id));
+    target.stories = target.stories.filter((s) => s.source !== 'pr' || ids.has(s.id));
+  }
   const byId = new Map(target.stories.map((s) => [s.id, s]));
-  for (const s of list) {
+  for (const s of items) {
     const existing = byId.get(s.id);
     if (existing) {
       existing.title = s.title;
@@ -169,9 +173,13 @@ export function detailStory(s) {
 
 /* ------------------------------ 查询 ------------------------------ */
 
-export function listStories({ page = 1, size = 12, q = '', tag = '', sort = 'new' } = {}) {
+export function listStories({ page = 1, size = 12, q = '', tag = '', sort = 'new', source = '' } = {}) {
   const deleted = new Set(db.deleted);
   let list = db.stories.filter((s) => !deleted.has(s.id));
+
+  // source=pr 只看玩家投稿，source=official 只看内置/来稿；空值表示全部
+  if (source === 'pr') list = list.filter((s) => s.source === 'pr');
+  else if (source === 'official') list = list.filter((s) => s.source !== 'pr');
 
   const kw = String(q || '').trim().toLowerCase();
 
@@ -194,7 +202,13 @@ export function listStories({ page = 1, size = 12, q = '', tag = '', sort = 'new
   } else if (sort === 'random') {
     list = list.slice().sort(() => Math.random() - 0.5);
   } else {
-    list = list.slice().sort((a, b) => b.createdAt - a.createdAt);
+    // 默认排序：玩家投稿排在官方题库前面，同级按时间倒序
+    list = list.slice().sort((a, b) => {
+      const pa = a.source === 'pr' ? 1 : 0;
+      const pb = b.source === 'pr' ? 1 : 0;
+      if (pa !== pb) return pb - pa;
+      return b.createdAt - a.createdAt;
+    });
   }
 
   const total = list.length;
@@ -222,11 +236,13 @@ export function getDeleted() {
   return new Set(db.deleted);
 }
 
-export function allTags() {
+export function allTags(source = '') {
   const map = new Map();
   const deleted = new Set(db.deleted);
   for (const s of db.stories) {
     if (deleted.has(s.id)) continue;
+    if (source === 'pr' && s.source !== 'pr') continue;
+    if (source === 'official' && s.source === 'pr') continue;
     for (const t of s.tags || []) map.set(t, (map.get(t) || 0) + 1);
   }
   return [...map.entries()]
