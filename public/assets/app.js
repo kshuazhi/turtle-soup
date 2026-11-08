@@ -28,7 +28,6 @@ function esc(str) {
 }
 
 const pad = (n) => String(n).padStart(2, '0');
-const num = (n) => (n >= 10000 ? (n / 10000).toFixed(1) + '万' : String(n ?? 0));
 
 function toast(msg) {
   const el = $('#toast');
@@ -205,7 +204,7 @@ const ICON_SEARCH = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" 
 const ICON_PLUS = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>`;
 const ICON_X = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>`;
 
-function cardHtml(s, i, page = state.page) {
+function cardHtml(s, i) {
   const tags = (s.tags || [])
     .slice(0, 2)
     .map((t) => `<i>${esc(t)}</i>`)
@@ -214,14 +213,11 @@ function cardHtml(s, i, page = state.page) {
     <article class="card" style="--i:${i}" data-id="${esc(s.id)}" role="link" tabindex="0"
              aria-label="阅读：${esc(s.title)}">
       <div class="card-top">
-        <span class="card-no">NO.${pad(i + 1 + (page - 1) * 12)}</span>
         <span class="card-no">${s.source === 'builtin' ? '馆藏' : '来稿'}</span>
       </div>
       <h3 class="card-title">${esc(s.title)}</h3>
       <p class="card-surface">${esc(s.surface)}</p>
       <div class="card-foot">
-        <span>${num(s.views)} 次翻煮</span>
-        <span>${num(s.likes)} 喜欢</span>
         <span class="card-tags">${tags}</span>
       </div>
     </article>`;
@@ -244,7 +240,7 @@ async function loadStats() {
   try {
     const s = await api('/stats');
     const el = $('#footStats');
-    if (el) el.textContent = `共 ${s.total} 道汤 · ${num(s.views)} 次翻煮 · ${num(s.likes)} 次喜欢`;
+    if (el) el.textContent = `共 ${s.total} 道汤`;
   } catch {
     /* ignore */
   }
@@ -377,7 +373,7 @@ async function loadList() {
       renderPager(data);
       return;
     }
-    wrap.innerHTML = data.items.map(cardHtml).join('');
+    wrap.innerHTML = data.items.map((s, i) => cardHtml(s, i)).join('');
     bindCards(wrap);
     renderPager(data);
   } catch (err) {
@@ -543,7 +539,7 @@ async function loadCommunityList() {
       renderCommunityPager(data);
       return;
     }
-    wrap.innerHTML = data.items.map((s, i) => cardHtml(s, i, communityState.page)).join('');
+    wrap.innerHTML = data.items.map((s, i) => cardHtml(s, i)).join('');
     bindCards(wrap);
     renderCommunityPager(data);
   } catch (err) {
@@ -632,8 +628,6 @@ async function viewPlay(id) {
           <span>${s.source === 'builtin' ? '馆藏' : '来稿'}</span>
           <span class="dot"></span>
           <span>${date.getFullYear()}.${pad(date.getMonth() + 1)}.${pad(date.getDate())}</span>
-          <span class="dot"></span>
-          <span>${num(s.views)} 次翻煮</span>
         </div>
 
         <h1 data-anim style="--i:1">${esc(s.title)}</h1>
@@ -665,7 +659,7 @@ async function viewPlay(id) {
 
         <div class="solution-actions" data-anim style="--i:7">
           <button class="btn ${playState.liked ? 'like-btn is-on' : ''}" id="btnLike" type="button">
-            ${playState.liked ? '已喜欢' : '喜欢'} <span id="likeCount">${num(s.likes)}</span>
+            ${playState.liked ? '已喜欢' : '喜欢'}
           </button>
           <button class="btn" id="btnNext" type="button">下一道 ${ICON_ARROW_R}</button>
           <button class="btn btn--ghost" id="btnRandom2" type="button">随机</button>
@@ -791,7 +785,7 @@ async function viewPlay(id) {
         });
         playState.liked = r.liked;
         likeBtn.classList.toggle('is-on', r.liked);
-        likeBtn.innerHTML = `${r.liked ? '已喜欢' : '喜欢'} <span id="likeCount">${num(r.likes)}</span>`;
+        likeBtn.innerHTML = r.liked ? '已喜欢' : '喜欢';
         let ids = store.get('turtle-soup-liked', []);
         ids = r.liked ? [...new Set([...ids, s.id])] : ids.filter((x) => x !== s.id);
         store.set('turtle-soup-liked', ids);
