@@ -6,7 +6,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "dev:keygen": "node tools/dev-keygen.mjs"
   },
   "engines": {
     "node": ">=18"

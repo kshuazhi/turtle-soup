@@ -706,162 +706,82 @@ async function loadRelated(tags, exceptId) {
 }
 
 /* ============================================================
-   出题页
+   投稿页（GitHub Pull Request）
    ============================================================ */
+
+const SOUP_REPO = 'https://github.com/kshuazhi/turtle-soup';
+const SOUP_PR = SOUP_REPO + '/compare?expand=1&template=turtle-soup.md';
+const SOUP_SUBMISSIONS = SOUP_REPO + '/tree/main/submissions';
+const SOUP_TEMPLATE = `{
+  "title": "汤的名字（40 字以内）",
+  "surface": "汤面：只写谜面，不要透露答案",
+  "solution": "汤底：完整、唯一、能解释汤面所有细节的真相",
+  "hints": ["提示一（可选）", "提示二（可选）"],
+  "tags": ["悬疑", "经典"]
+}`;
 
 async function viewNew() {
   setNav('new');
   state.scope = 'new';
+  document.title = '投稿 · 海龟汤';
 
-  await swap(async (el) => {
+  await swap((el) => {
     el.innerHTML = `
       <div class="form-wrap">
         <a class="back" href="/" data-nav>${ICON_ARROW_L} 返回题库</a>
+
         <div class="form-head" data-anim style="--i:0">
-          <span class="kicker">SUBMIT · 来稿</span>
-          <h1>熬一锅新汤</h1>
-          <p>汤面是给玩家的谜题，汤底是唯一的真相。题目会立刻出现在题库里，请认真填写。</p>
+          <span class="kicker">SUBMIT · 投稿</span>
+          <h1>出一碗汤，<span class="thin">用 Pull Request。</span></h1>
+          <p>网页不再直接发布题目。所有海龟汤都通过 GitHub Pull Request 提交，维护者人工核查后合并，随下一次部署自动上线。</p>
         </div>
 
-        <form class="form" id="storyForm" novalidate>
-          <label class="field" data-anim style="--i:1">
-            <span>标题 <em><b id="titleCnt">0</b>/40</em></span>
-            <input name="title" maxlength="40" placeholder="给这碗汤起个名字" autocomplete="off" required />
-          </label>
+        <ol class="submit-steps">
+          <li data-anim style="--i:1"><div>
+            <h3><b>01</b> Fork 仓库</h3>
+            <p>打开 <a href="${SOUP_REPO}" target="_blank" rel="noopener">kshuazhi/turtle-soup</a>，点右上角 Fork，得到你自己的副本。</p>
+          </div></li>
+          <li data-anim style="--i:2"><div>
+            <h3><b>02</b> 新建 submissions/你的汤名.json</h3>
+            <p>在副本里进入 <a href="${SOUP_SUBMISSIONS}" target="_blank" rel="noopener">submissions/</a> 目录，按下面的格式新建一个 JSON 文件（文件名用英文或拼音，例如 <code>midnight-knock.json</code>）。</p>
+          </div></li>
+          <li data-anim style="--i:3"><div>
+            <h3><b>03</b> 提交 Pull Request</h3>
+            <p>点下面的「去 GitHub 提交 PR」，标题以 <code>[汤]</code> 开头，模板选「海龟汤投稿」，说明里写清汤名和一句话简介。</p>
+          </div></li>
+          <li data-anim style="--i:4"><div>
+            <h3><b>04</b> 人工核查后上线</h3>
+            <p>维护者会人工检查内容与合规性；合并后随下一次部署自动进入题库，不需要你再做别的。</p>
+          </div></li>
+        </ol>
 
-          <label class="field" data-anim style="--i:2">
-            <span>汤面 <em><b id="surfaceCnt">0</b>/1000</em></span>
-            <textarea name="surface" rows="5" maxlength="1000" placeholder="只写谜面，不要透露答案。例如：他在雨中看见一个红色的身影，忽然哭了。" required></textarea>
-            <small class="hintline">玩家第一眼看到的内容</small>
-          </label>
-
-          <label class="field" data-anim style="--i:3">
-            <span>汤底 <em><b id="solutionCnt">0</b>/3000</em></span>
-            <textarea name="solution" rows="6" maxlength="3000" placeholder="完整、唯一、能解释汤面所有细节的真相。" required></textarea>
-            <small class="hintline">揭晓后展示的答案，玩家输入它（忽略标点与空格）即算猜中</small>
-          </label>
-
-          <div class="field" data-anim style="--i:4">
-            <span>提示 <em>最多 8 条</em></span>
-            <div class="hint-editor" id="hintEditor"></div>
-            <button class="btn btn--sm" id="addHint" type="button" style="align-self:flex-start">${ICON_PLUS} 加一条提示</button>
+        <section class="submit-template" data-anim style="--i:5" aria-label="投稿格式">
+          <div class="submit-template-head">
+            <span>submissions/你的汤名.json</span>
+            <button class="btn btn--sm" id="btnCopyTemplate" type="button">复制模板</button>
           </div>
+          <pre id="soupTemplate">${esc(SOUP_TEMPLATE)}</pre>
+        </section>
 
-          <label class="field" data-anim style="--i:5">
-            <span>标签 <em>逗号或空格分隔，最多 5 个</em></span>
-            <input name="tags" maxlength="80" placeholder="例如：悬疑，悲伤" autocomplete="off" />
-            <div class="tagbar" id="tagSuggest"></div>
-          </label>
+        <div class="hero-actions" data-anim style="--i:6">
+          <a class="btn btn--primary" href="${SOUP_PR}" target="_blank" rel="noopener">去 GitHub 提交 PR ${ICON_ARROW_R}</a>
+          <a class="btn" href="${SOUP_SUBMISSIONS}" target="_blank" rel="noopener">查看投稿目录</a>
+          <a class="btn btn--ghost" href="${SOUP_REPO}" target="_blank" rel="noopener">打开仓库</a>
+        </div>
 
-          <div class="form-foot" data-anim style="--i:6">
-            <button class="btn btn--primary" type="submit" id="submitBtn">发布这道汤</button>
-            <a class="btn btn--ghost" href="/" data-nav>取消</a>
-            <span class="form-msg" id="formMsg" aria-live="polite"></span>
-          </div>
-        </form>
-      </div>
-    `;
+        <p class="submit-note" data-anim style="--i:7">
+          海龟汤投稿请使用「海龟汤投稿」模板并放在 <code>submissions/</code> 下；
+          普通代码 / 文档 PR 请使用默认模板、标题不要加 <code>[汤]</code>，
+          两者互不干扰，人工核查分开进行。
+        </p>
+      </div>`;
 
-    const form = $('#storyForm');
-    const msg = $('#formMsg');
-
-    const counters = [
-      ['title', 'titleCnt'],
-      ['surface', 'surfaceCnt'],
-      ['solution', 'solutionCnt']
-    ];
-    counters.forEach(([n, c]) => {
-      const input = form.elements.namedItem(n);
-      const upd = () => ($('#' + c).textContent = input.value.length);
-      input.addEventListener('input', upd);
-      upd();
-    });
-
-    // 提示编辑
-    const editor = $('#hintEditor');
-    let hintIdx = 0;
-    function addHintRow(value = '') {
-      if (editor.children.length >= 8) return;
-      hintIdx += 1;
-      const row = document.createElement('div');
-      row.className = 'hint-row';
-      row.innerHTML = `
-        <input maxlength="200" placeholder="第 ${editor.children.length + 1} 条提示（可选）" value="${esc(value)}" />
-        <button class="icon-btn" type="button" aria-label="删除这条提示">${ICON_X}</button>`;
-      row.querySelector('button').addEventListener('click', () => {
-        row.remove();
-        [...editor.children].forEach((r, i) => {
-          r.querySelector('input').placeholder = `第 ${i + 1} 条提示（可选）`;
-        });
-      });
-      editor.appendChild(row);
-      return row;
-    }
-    $('#addHint').addEventListener('click', () => {
-      const r = addHintRow();
-      r?.querySelector('input').focus();
-    });
-    addHintRow();
-
-    // 标签建议
-    try {
-      const { tags } = await api('/tags');
-      const box = $('#tagSuggest');
-      if (box && tags.length) {
-        box.innerHTML = tags
-          .slice(0, 8)
-          .map((t) => `<button class="chip" type="button" data-t="${esc(t.name)}">${esc(t.name)}</button>`)
-          .join('');
-        box.querySelectorAll('.chip').forEach((c) =>
-          c.addEventListener('click', () => {
-            const input = form.elements.namedItem('tags');
-            const cur = input.value
-              .split(/[,，\s]+/)
-              .map((x) => x.trim())
-              .filter(Boolean);
-            if (cur.includes(c.dataset.t)) return;
-            if (cur.length >= 5) return toast('标签最多 5 个');
-            input.value = [...cur, c.dataset.t].join('，');
-          })
-        );
-      }
-    } catch {
-      /* ignore */
-    }
-
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const fd = new FormData(form);
-      const title = String(fd.get('title') || '').trim();
-      const surface = String(fd.get('surface') || '').trim();
-      const solution = String(fd.get('solution') || '').trim();
-      if (!title || !surface || !solution) {
-        msg.className = 'form-msg is-bad';
-        msg.textContent = '标题、汤面、汤底都需要填写。';
-        return;
-      }
-      const hints = [...editor.querySelectorAll('input')].map((i) => i.value.trim()).filter(Boolean);
-      const tags = String(fd.get('tags') || '')
-        .split(/[,，、\s]+/)
-        .map((x) => x.trim())
-        .filter(Boolean)
-        .slice(0, 5);
-
-      const btn = $('#submitBtn');
-      btn.disabled = true;
-      msg.className = 'form-msg';
-      msg.textContent = '正在下锅…';
+    $('#btnCopyTemplate').addEventListener('click', async () => {
       try {
-        const story = await api('/stories', {
-          method: 'POST',
-          body: JSON.stringify({ title, surface, solution, hints, tags })
-        });
-        toast('发布成功');
-        navigate('/play/' + encodeURIComponent(story.id));
-      } catch (err) {
-        msg.className = 'form-msg is-bad';
-        msg.textContent = err.message;
-        btn.disabled = false;
+        await navigator.clipboard.writeText(SOUP_TEMPLATE);
+        toast('模板已复制');
+      } catch {
+        toast('复制失败，请手动选中模板');
       }
     });
   });

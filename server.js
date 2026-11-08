@@ -7,7 +7,6 @@ import {
   listStories,
   getStory,
   detailStory,
-  addStory,
   deleteStory,
   revealStory,
   incViews,
@@ -50,8 +49,11 @@ import {
   leaveRoom,
   closeRoom,
   attachClient,
-  roomsStats
+  roomsStats,
+  devSnapshot
 } from './src/rooms.js';
+import { verifyDevToken, startDevSession, endDevSession, isDev, requireDev } from './src/dev.js';
+import { scanText, moderationMeta } from './src/moderation.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT) || 3300;
@@ -96,6 +98,70 @@ const ANSWER_TTL = 2 * 60 * 60 * 1000;
 
 const api = express.Router();
 
+/* ------------------------------ 开发者面板 ------------------------------ */
+
+const devApi = express.Router();
+
+devApi.post('/login', rateLimit({ windowMs: 10 * 60_000, max: 10 }), (req, res) => {
+  const token = String(req.body?.token || '').trim();
+  if (!token) return res.status(400).json({ error: '请输入开发者密钥' });
+  if (!verifyDevToken(token)) return res.status(403).json({ error: '密钥不正确' });
+  startDevSession(req, res);
+  res.json({ ok: true });
+});
+
+devApi.post('/logout', (req, res) => {
+  endDevSession(req, res);
+  res.json({ ok: true });
+});
+
+devApi.get('/me', (req, res) => {
+  res.json({ ok: isDev(req), moderation: moderationMeta() });
+});
+
+// 所有进行中的对局（摘要）
+devApi.get('/rooms', requireDev, (req, res) => {
+  const rooms = devSnapshot()
+    .map((r) => {
+      const messageHits = r.messages.filter((m) => scanText(m.text).length).length;
+      return {
+        code: r.code,
+        title: r.title,
+        mode: r.mode,
+        status: r.status,
+        round: r.round,
+        hostName: r.hostName,
+        memberCount: r.members.length,
+        onlineCount: r.members.filter((m) => m.online).length,
+        messageCount: r.messages.length,
+        flags: { surface: scanText(r.surface), solution: scanText(r.solution), messageHits },
+        lastActivity: r.lastActivity
+      };
+    })
+    .sort((a, b) => b.lastActivity - a.lastActivity);
+  res.json({ rooms, scannedAt: Date.now(), moderation: moderationMeta() });
+});
+
+// 单个对局详情：谜题、汤面、汤底、全部对话（含私聊）
+devApi.get('/rooms/:code', requireDev, (req, res) => {
+  const room = devSnapshot(req.params.code);
+  if (!room) return res.status(404).json({ error: '房间不存在或已解散' });
+  const messages = room.messages.map((m) => ({ ...m, hits: scanText(m.text) }));
+  res.json({
+    room: {
+      ...room,
+      messages,
+      flags: {
+        surface: scanText(room.surface),
+        solution: scanText(room.solution),
+        messageHits: messages.filter((m) => m.hits.length).length
+      }
+    }
+  });
+});
+
+api.use('/dev', devApi);
+
 api.get('/health', (req, res) => {
   res.json({ ok: true, time: Date.now() });
 });
@@ -129,13 +195,12 @@ api.get('/stories/:id', (req, res) => {
   res.json(detailStory(s));
 });
 
-api.post('/stories', rateLimit({ windowMs: 10 * 60_000, max: 20 }), (req, res, next) => {
-  try {
-    const story = addStory(req.body || {}, 'user');
-    res.status(201).json(detailStory(story));
-  } catch (err) {
-    next(err);
-  }
+// 出题改为 GitHub Pull Request：网页不再直接发布题目，只保留教程页
+api.post('/stories', rateLimit({ windowMs: 10 * 60_000, max: 20 }), (req, res) => {
+  res.status(403).json({
+    error: '网页投稿已关闭：请按教程在 GitHub 提交 Pull Request，人工核查合并后上线',
+    url: 'https://github.com/kshuazhi/turtle-soup'
+  });
 });
 
 api.delete('/stories/:id', (req, res) => {
@@ -341,6 +406,11 @@ app.use(
     }
   })
 );
+
+// 开发者登录 / 面板（独立页面，不进单页路由）
+app.get('/dev', (req, res) => {
+  res.sendFile(path.join(publicDir, 'dev.html'));
+});
 
 // 单页路由回退
 app.get(['/play/:id', '/new', '/about', '/rooms', '/rooms/custom', '/rooms/preset', '/room/:code'], (req, res) => {

@@ -7,3 +7,6 @@ data/*.json.*
 .env
 .env.*
 !.env.example
+
+# 开发者私钥：只留本地，绝不入库
+.keys/

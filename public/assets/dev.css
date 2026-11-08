@@ -1,0 +1,372 @@
+/* 开发者面板（独立页面） */
+
+.dev-main {
+  flex: 1;
+  width: min(1400px, 100%);
+  margin: 0 auto;
+  padding: clamp(24px, 4vw, 48px) clamp(16px, 3vw, 40px) 64px;
+}
+
+.dev-login {
+  max-width: 720px;
+  margin: 5vh auto 0;
+  padding: clamp(24px, 4vw, 40px);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.dev-login h1 {
+  margin: 10px 0 14px;
+  font-size: clamp(30px, 5vw, 44px);
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.dev-lead {
+  margin: 0;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.dev-login-form {
+  margin-top: 24px;
+}
+
+.dev-login-form .field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dev-login-form .field > span {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.dev-login-form textarea {
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--bg-soft);
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.dev-login-form textarea:focus {
+  outline: none;
+  border-color: var(--text);
+}
+
+.dev-login-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.dev-help {
+  margin-top: 26px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.dev-help summary {
+  cursor: pointer;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.dev-help code {
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--surface-2);
+}
+
+.dev-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.dev-panel-head h1 {
+  margin: 6px 0 0;
+  font-size: clamp(28px, 4vw, 40px);
+  font-weight: 400;
+  line-height: 1.15;
+}
+
+.dev-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.dev-meta {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.dev-grid {
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .dev-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dev-room-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+  max-height: 72vh;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.dev-room {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+  padding: 14px 16px;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 0.2s var(--ease), background 0.2s var(--ease);
+}
+
+.dev-room:hover,
+.dev-room.is-on {
+  border-color: var(--line-strong);
+  background: var(--surface-2);
+}
+
+.dev-room-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.dev-room-top b {
+  font-weight: 500;
+}
+
+.dev-room-top em {
+  font-style: normal;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.dev-room-meta {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.dev-badge {
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 2px 9px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.dev-badge--bad {
+  border-color: #b4534b;
+  color: #e0847c;
+}
+
+html[data-theme="light"] .dev-badge--bad {
+  color: #a33;
+  border-color: #c98a83;
+}
+
+.dev-detail {
+  min-height: 320px;
+  padding: clamp(18px, 3vw, 28px);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.dev-detail h2 {
+  margin: 4px 0 6px;
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1.3;
+}
+
+.dev-detail-meta {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.dev-members {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+}
+
+.dev-member {
+  padding: 3px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.dev-member.is-on {
+  color: var(--text);
+  border-color: var(--line-strong);
+}
+
+.dev-member i {
+  font-style: normal;
+  color: var(--text);
+}
+
+.dev-section {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.dev-section h3 {
+  margin: 0 0 10px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.dev-text {
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.85;
+}
+
+.dev-audit {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 16px 0 0;
+}
+
+.dev-audit span {
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.dev-audit span.is-hit {
+  border-color: #b4534b;
+  color: #e0847c;
+}
+
+html[data-theme="light"] .dev-audit span.is-hit {
+  color: #a33;
+  border-color: #c98a83;
+}
+
+.dev-msgs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+  max-height: 46vh;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.dev-msg {
+  padding: 10px 12px;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.dev-msg-head {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.dev-msg-head b {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.dev-msg-kind {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.dev-msg-text {
+  white-space: pre-wrap;
+  font-size: 14.5px;
+  line-height: 1.7;
+}
+
+.dev-hit {
+  display: inline-block;
+  margin-top: 6px;
+  color: #e0847c;
+  font-size: 11.5px;
+}
+
+html[data-theme="light"] .dev-hit {
+  color: #a33;
+}
+
+mark {
+  padding: 0 2px;
+  border-radius: 3px;
+  background: rgba(224, 132, 124, 0.22);
+  color: inherit;
+}
+
+html[data-theme="light"] mark {
+  background: rgba(180, 83, 75, 0.18);
+}

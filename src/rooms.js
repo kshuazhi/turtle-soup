@@ -1072,4 +1072,51 @@ export function roomsStats() {
   return { rooms: rooms.size };
 }
 
+/* ------------------------------ 开发者面板 ------------------------------ */
+
+function roomAuditView(room) {
+  return {
+    code: room.code,
+    title: room.title,
+    mode: room.mode,
+    status: !room.active ? 'waiting' : room.revealed ? 'revealed' : 'playing',
+    round: room.round,
+    hostName: room.members.find((m) => m.id === room.hostId)?.name || '',
+    surface: room.surface,
+    solution: room.solution,
+    hints: room.hints.slice(),
+    hintCount: room.hintCount,
+    members: room.members.map((m) => ({
+      id: m.id,
+      name: m.name,
+      online: !!m.online,
+      ready: !!m.ready,
+      host: m.id === room.hostId
+    })),
+    // 开发者审查需要看到全部消息（含私聊），这是面板的唯一用途
+    messages: room.messages.map((m) => ({
+      id: m.id,
+      kind: m.kind,
+      memberId: m.memberId || null,
+      name: m.name || '',
+      text: m.text || '',
+      answer: m.answer || null,
+      hintReq: m.hintReq || null,
+      to: m.to || null,
+      from: m.from || null,
+      at: m.at
+    })),
+    createdAt: room.createdAt,
+    lastActivity: room.lastActivity
+  };
+}
+
+export function devSnapshot(code) {
+  if (code) {
+    const room = rooms.get(String(code).toUpperCase());
+    return room ? roomAuditView(room) : null;
+  }
+  return [...rooms.values()].map(roomAuditView);
+}
+
 export { rooms, MAX_MEMBERS, CODE_LEN };

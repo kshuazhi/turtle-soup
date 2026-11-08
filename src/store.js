@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { builtinStories } from './stories.js';
+import { loadSubmissions } from './submissions.js';
 
 const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), 'data');
 const DATA_FILE = path.join(DATA_DIR, 'db.json');
@@ -62,6 +63,27 @@ function seedIfNeeded(db) {
 let db = emptyDb();
 let saveTimer = null;
 
+// 合并进 submissions/ 的 PR 稿件（人工核查通过后）同步进题库；文件被删除则下架
+function syncSubmissions(target) {
+  const list = loadSubmissions();
+  const ids = new Set(list.map((s) => s.id));
+  target.stories = target.stories.filter((s) => s.source !== 'pr' || ids.has(s.id));
+  const byId = new Map(target.stories.map((s) => [s.id, s]));
+  for (const s of list) {
+    const existing = byId.get(s.id);
+    if (existing) {
+      existing.title = s.title;
+      existing.surface = s.surface;
+      existing.solution = s.solution;
+      existing.hints = s.hints;
+      existing.tags = s.tags;
+      existing.updatedAt = now();
+    } else {
+      target.stories.push({ ...s, views: 0, likes: 0, createdAt: s.createdAt || now() });
+    }
+  }
+}
+
 function load() {
   fs.mkdirSync(DATA_DIR, { recursive: true });
   if (fs.existsSync(DATA_FILE)) {
@@ -82,6 +104,7 @@ function load() {
     }
   }
   seedIfNeeded(db);
+  syncSubmissions(db);
   flush();
 }
 
