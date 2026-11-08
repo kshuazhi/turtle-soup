@@ -1,4 +1,4 @@
-// 备份题库数据（翻煮次数 / 喜欢 / 投稿缓存）到 backups/db-<时间戳>.json
+// 修复已知问题 / Fix known issues
 import fs from 'node:fs';
 import path from 'node:path';
 

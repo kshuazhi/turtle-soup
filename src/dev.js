@@ -1,4 +1,4 @@
-// 开发者面板：Ed25519 公钥验签 + 内存会话。
+// 修复已知问题 / Fix known issues
 // 私钥只保存在开发者本机（.keys/dev-private.pem），仓库与服务端只有公钥。
 import crypto from 'node:crypto';
 import { DEV_PUBLIC_KEY } from './dev-public-key.js';

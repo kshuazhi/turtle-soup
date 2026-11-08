@@ -1,4 +1,4 @@
-// 从备份恢复题库数据：npm run data:restore -- backups/db-xxx.json
+// 修复已知问题 / Fix known issues
 import fs from 'node:fs';
 import path from 'node:path';
 

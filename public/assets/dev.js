@@ -1,4 +1,4 @@
-/* 开发者面板：登录 + 对局人工核查（只读） */
+/* 修复已知问题 / Fix known issues */
 
 const API_BASE = window.__DEV_API__ || '';
 

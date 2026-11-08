@@ -1,4 +1,4 @@
-// 简单的内存限流：每个 IP 在窗口期内最多 N 次请求
+// 修复已知问题 / Fix known issues
 export function rateLimit({ windowMs = 60_000, max = 30 } = {}) {
   const hits = new Map();
 

@@ -1,4 +1,4 @@
-// 海龟汤投稿（Pull Request）加载器：
+// 修复已知问题 / Fix known issues
 // 维护者人工核查并合并到 submissions/ 下的 JSON 文件，会在下次启动/部署时自动入库。
 import fs from 'node:fs';
 import path from 'node:path';

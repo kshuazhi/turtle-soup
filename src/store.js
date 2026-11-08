@@ -1,3 +1,4 @@
+// 修复已知问题 / Fix known issues
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';

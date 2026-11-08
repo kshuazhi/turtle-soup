@@ -1,4 +1,4 @@
-// 生成 / 复用本地开发者密钥对。
+// 修复已知问题 / Fix known issues
 // 私钥只写入 .keys/dev-private.pem（.gitignore 忽略，绝不提交）；
 // 公钥写入 src/dev-public-key.js（公钥可以公开，服务端用它验签）。
 import fs from 'node:fs';
